@@ -24,7 +24,7 @@ for ($i = 1; $i <= $num_layers; $i++) {
     } elseif ($i === $num_layers) {
         $layers[] = $num_output;
     } else {
-        $layers[] = $num_neurons_hidden;
+        $layers[] = $num_neurons_hidden + ($i * 8);
     }
 }
 

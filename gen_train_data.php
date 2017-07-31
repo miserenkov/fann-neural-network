@@ -5,13 +5,15 @@
  * Email: mi.serenkov@gmail.com
  * Date: 29.07.2017 15:28
  */
-function generate_frequencies($text){
+function generate_frequencies($text, &$firstLetter){
     // Удалим все кроме букв
     $text = preg_replace("/[^\p{L}\d]/iu", "", mb_convert_case($text, MB_CASE_LOWER));
 
+    $firstLetter = substr($text, 1, 1);
+
     // Найдем параметры для расчета частоты
-    $total = mb_strlen($text);
-//    $total = 255;
+//    $total = mb_strlen($text);
+    $total = 255;
     $data = count_chars($text);
 
     // Ну и сам расчет
@@ -25,27 +27,36 @@ function generate_frequencies($text){
 
 $companies = explode("\n", file_get_contents('companies.csv'));
 
-$dataCount = (int)$argv[1];
+$dataCount = count($companies);
 
-$outputTemplate = [];
-for($i = 0; $i < $dataCount; $i++) {
-    $outputTemplate[] = 0;
+$preparedData = [];
+for ($i = 0; $i < $dataCount; $i++) {
+    $ident = '';
+    $freq = generate_frequencies($companies[$i], $ident);
+    $preparedData[$ident][] = $freq;
 }
 
-@unlink('companies.trained');
-@unlink('companies.data');
+$getOutputTemplate = function ($length) {
+    $outputTemplate = [];
+    for($i = 0; $i < $length; $i++) {
+        $outputTemplate[] = 0;
+    }
 
-file_put_contents("companies.data", sprintf("%d 256 %d\n", $dataCount, $dataCount));
-for($i = 1; $i <= $dataCount; $i++) {
-    $company = $companies[$i - 1];
+    return $outputTemplate;
+};
 
-    file_put_contents('companies.trained', $company."\n", FILE_APPEND);
 
-    $output = $outputTemplate;
+foreach ($preparedData as $char => $freqs) {
+    file_put_contents("data/companies/$char.data", sprintf("%d 256 %d\n", count($freqs), count($freqs)));
 
-    $output[$i-1] = 1;
+    for($i = 1; $i <= count($freqs); $i++) {
+        $company = $companies[array_rand($companies)];
 
-    $freq = generate_frequencies($company);
+        $output = $getOutputTemplate(count($freqs));
 
-    file_put_contents("companies.data", sprintf($i === $dataCount ? "%s\n%s" : "%s\n%s\n", implode(' ', $freq), implode(' ', $output)), FILE_APPEND);
+        $output[$i-1] = 1;
+
+        file_put_contents("data/companies/$char.data", sprintf($i === count($freqs) ? "%s\n%s" : "%s\n%s\n", implode(' ', $freqs[$i-1]), implode(' ', $output)), FILE_APPEND);
+
+    }
 }
